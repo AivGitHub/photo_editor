@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export PROJECT_NAME="Koldbox"
+export VERSION="0.1"

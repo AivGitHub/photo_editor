@@ -1,0 +1,70 @@
+#!/bin/bash
+
+VERSION="0.1"
+PARAMS=""
+PACKAGES='gettext'
+
+if ! dpkg -s $PACKAGES >/dev/null 2>&1; then
+  echo "You need packages \"$PACKAGES\" to work."
+  exit 1
+fi
+
+while (( "$#" )); do
+  case "$1" in
+    -l|--languages)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        LANGUAGES+=" $2"
+        shift 2
+      else
+        echo "Error: Arguments for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -h|--help)
+      echo "Help"
+      exit 0
+      ;;
+    -v|--version)
+      echo $VERSION
+      exit 0
+      ;;
+    -c|--create)
+      CREATE=1
+      shift
+      ;;
+    -s|--show)
+      SHOW=1
+      shift
+      ;;
+    -*|--*=)
+      echo "Error: Unsupported flag $1" >&2
+      exit 1
+      ;;
+    *)
+      PARAMS="$PARAMS $1"
+      shift
+      ;;
+  esac
+done
+
+eval set -- "$PARAMS"
+
+echo "Searching for python files and building base.pot"
+find . -name "*.py" -not -path "./environment/*" -print -exec xgettext -d base -o locale/base.pot {} \;
+
+if [[ "$CREATE" == "1" ]]; then
+  echo "Option \"create\" is specified. "
+  cp locale/base.pot locale/en/LC_MESSAGES/base.po
+  cp locale/base.pot locale/ru/LC_MESSAGES/base.po
+else
+  echo "Updating base.pot"
+  msgmerge --update locale/en/LC_MESSAGES/base.po locale/base.pot
+  msgmerge --update locale/ru/LC_MESSAGES/base.po locale/base.pot
+fi
+
+echo "msgfmt on locale"
+msgfmt -o locale/en/LC_MESSAGES/base.mo locale/en/LC_MESSAGES/base
+msgfmt -o locale/ru/LC_MESSAGES/base.mo locale/ru/LC_MESSAGES/base
+
+echo "Deleting locale/base.pot"
+rm locale/base.pot
